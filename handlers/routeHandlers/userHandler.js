@@ -1,4 +1,4 @@
-const { hash, parseJSON, extractBearerToken, verifyToken } = require('../../helpers/utilities');
+const { hash, parseJSON, getBearerToken, verifyToken } = require('../../helpers/utilities');
 const data = require('../../lib/data');
 
 // Handler container
@@ -80,7 +80,7 @@ handler._users.get = (requestProperties, callback) => {
 	// const token = validateToken(bearerToken);
 
 	// get token from Bearer Authorization header
-	const bearerToken = extractBearerToken(requestProperties.headersObject);
+	const bearerToken = getBearerToken(requestProperties.headersObject);
 	const token = validateToken(bearerToken);
 
 	if (phone && token) {
@@ -120,7 +120,7 @@ handler._users.put = (requestProperties, callback) => {
   	const password = validateString(requestProperties.body.password);
 
   	// get token from Bearer Authorization header
-  	const bearerToken = extractBearerToken(requestProperties.headersObject);
+  	const bearerToken = getBearerToken(requestProperties.headersObject);
 	const token = validateToken(bearerToken);
 
   	// Update only if phone is valid and at least one field is provided
@@ -175,7 +175,7 @@ handler._users.delete = (requestProperties, callback) => {
 	const phone = validatePhone(requestProperties.queryStringObject.phone);
 
 	// get token from Bearer Authorization header
-  	const bearerToken = extractBearerToken(requestProperties.headersObject);
+  	const bearerToken = getBearerToken(requestProperties.headersObject);
 	const token = validateToken(bearerToken);
 
   	if (phone && token) {

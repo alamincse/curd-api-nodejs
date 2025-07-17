@@ -32,9 +32,9 @@ utilities.createRandomString = (strLength) => {
 };
 
 // return token (From Bearer Token) or just null
-utilities.extractBearerToken = (headers) => {
+utilities.getBearerToken = (headers) => {
   const authHeader = headers['authorization'] ?? '';
-  
+
   return authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 };
 
