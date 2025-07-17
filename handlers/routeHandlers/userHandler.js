@@ -1,4 +1,4 @@
-const { hash, parseJSON } = require('../../helpers/utilities');
+const { hash, parseJSON, extractBearerToken, verifyToken } = require('../../helpers/utilities');
 const data = require('../../lib/data');
 
 // Handler container
@@ -24,6 +24,8 @@ handler._users = {};
 const validateString = (value) => typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 
 const validatePhone = (phone) => typeof phone === 'string' && phone.trim().length === 11 ? phone.trim() : null;
+
+const validateToken = (token) => typeof token === 'string' && token.trim().length === 40 ? token.trim() : false;
 
 
 handler._users.post = (requestProperties, callback) => {
@@ -69,24 +71,44 @@ handler._users.post = (requestProperties, callback) => {
 handler._users.get = (requestProperties, callback) => {
 	const phone = validatePhone(requestProperties.queryStringObject.phone);
 
-	if (phone) {
-		data.read('users', phone, (error, userData) => {
-			if (!error && userData) {
-				const user = parseJSON(userData);
+	// get token from header property(Headers)
+	// const token = validateToken(requestProperties.headersObject.token);
 
-				// Remove sensitive data like password here!
-		        delete user.password;
+	// get token from `Bearer Token` (Authorization)
+	// const authorization = requestProperties.headersObject['authorization'] ?? null;
+	// const bearerToken = authorization && authorization.startsWith('Bearer ') ? authorization.split(' ')[1] : null;
+	// const token = validateToken(bearerToken);
 
-		        callback(200, user);
+	// get token from Bearer Authorization header
+	const bearerToken = extractBearerToken(requestProperties.headersObject);
+	const token = validateToken(bearerToken);
+
+	if (phone && token) {
+		verifyToken(token, phone, (isValid) => {
+			if (isValid) {
+				data.read('users', phone, (error, userData) => {
+					if (!error && userData) {
+						const user = parseJSON(userData);
+
+						// Remove sensitive data like password here!
+				        delete user.password;
+
+				        callback(200, user);
+					} else {
+						callback(404, { 
+							error: 'User not found' 
+						});
+					}
+				});
 			} else {
-				callback(404, { 
-					error: 'User not found' 
+				callback(403, { 
+					error: 'Authentication failed!' 
 				});
 			}
 		});
 	} else {
 		callback(400, { 
-			error: 'Invalid phone number' 
+			error: 'Invalid phone number or token!' 
 		});
 	}
 };
@@ -97,42 +119,54 @@ handler._users.put = (requestProperties, callback) => {
   	const phone = validatePhone(requestProperties.body.phone);
   	const password = validateString(requestProperties.body.password);
 
+  	// get token from Bearer Authorization header
+  	const bearerToken = extractBearerToken(requestProperties.headersObject);
+	const token = validateToken(bearerToken);
+
   	// Update only if phone is valid and at least one field is provided
-  	if (phone) {
-  		if (firstName || lastName || password) {
-  			data.read('users', phone, (error, userData) => {
-		        if (!error && userData) {
-		          	const user = parseJSON(userData);
+  	if (phone && token) {
+  		verifyToken(token, phone, (isValid) => {
+			if (isValid) {
+		  		if (firstName || lastName || password) {
+		  			data.read('users', phone, (error, userData) => {
+				        if (!error && userData) {
+				          	const user = parseJSON(userData);
 
-		          	if (firstName) user.firstName = firstName;
-		          	if (lastName) user.lastName = lastName;
-		          	if (password) user.password = has(password); 
+				          	if (firstName) user.firstName = firstName;
+				          	if (lastName) user.lastName = lastName;
+				          	if (password) user.password = hash(password); 
 
-		          	data.update('users', phone, user, (updateError) => {
-		            	if (!updateError) {
-		             		callback(200, { 
-		             			message: 'User updated successfully' 
-		             		});
-		            	} else {
-		              		callback(500, { 
-		              			error: 'Could not update user' 
-		              		});
-		            	}
-		          	});
-		        } else {
-	          		callback(404, { 
-	          			error: 'User not found' 
-	          		});
-		        }
-		      });
-  		} else {
-  			callback(400, { 
-  				error: 'No fields to update' 
-  			});
-  		}
+				          	data.update('users', phone, user, (updateError) => {
+				            	if (!updateError) {
+				             		callback(200, { 
+				             			message: 'User updated successfully' 
+				             		});
+				            	} else {
+				              		callback(500, { 
+				              			error: 'Could not update user' 
+				              		});
+				            	}
+				          	});
+				        } else {
+			          		callback(404, { 
+			          			error: 'User not found' 
+			          		});
+				        }
+				      });
+		  		} else {
+		  			callback(400, { 
+		  				error: 'No fields to update' 
+		  			});
+		  		}
+		  	} else {
+				callback(403, { 
+					error: 'Authentication failed!' 
+				});
+			}
+		});
   	} else {
   		callback(400, { 
-  		 	error: 'Invalid phone number' 
+  		 	error: 'Invalid phone number or token' 
   		});
   	}
 };
@@ -140,29 +174,44 @@ handler._users.put = (requestProperties, callback) => {
 handler._users.delete = (requestProperties, callback) => {
 	const phone = validatePhone(requestProperties.queryStringObject.phone);
 
-  	if (phone) {
-	    data.read('users', phone, (error, userData) => {
-      		if (!error && userData) {
-		        data.delete('users', phone, (deleteError) => {
-	          		if (!deleteError) {
-			            callback(200, { 
-			            	message: 'User deleted successfully' 
-			            });
-		          	} else {
-			            callback(500, { 
-			            	error: 'Could not delete the user' 
-			            });
-	          		}
-		        });
-	      	} else {
-	        	callback(404, { 
-	        		error: 'User not found' 
-	        	});
-	      	}
-	    });
+	// get token from Bearer Authorization header
+  	const bearerToken = extractBearerToken(requestProperties.headersObject);
+	const token = validateToken(bearerToken);
+
+  	if (phone && token) {
+  		verifyToken(token, phone, (isValid) => {
+			if (isValid) {
+			    data.read('users', phone, (error, userData) => {
+		      		if (!error && userData) {
+				        data.delete('users', phone, (deleteError) => {
+			          		if (!deleteError) {
+					            callback(200, { 
+					            	message: 'User deleted successfully' 
+					            });
+				          	} else {
+					            callback(500, { 
+					            	error: 'Could not delete the user' 
+					            });
+			          		}
+				        });
+			      	} else {
+			        	callback(404, { 
+			        		error: 'User not found' 
+			        	});
+			      	}
+			    });
+
+			    // Same user delete from tokens 
+			    // Need to work on it
+		    } else {
+				callback(403, { 
+					error: 'Authentication failed!' 
+				});
+			}
+		});
   	} else {
     	callback(400, { 
-    		error: 'Invalid phone number' 
+    		error: 'Invalid phone number or token' 
     	});
   	}
 };

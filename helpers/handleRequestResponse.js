@@ -26,6 +26,7 @@ handler.handleRequestResponse = (request, response) => {
 		headersObject,
 	};
 
+	
 	// decode striming payload data 
 	const decoder = new StringDecoder('utf-8');
 	let buffer = '';
