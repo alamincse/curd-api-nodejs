@@ -1,4 +1,4 @@
-const { parseJSON } = require('../../helpers/utilities');
+const { hash, parseJSON } = require('../../helpers/utilities');
 const data = require('../../lib/data');
 
 // Handler container
@@ -39,7 +39,7 @@ handler._users.post = (requestProperties, callback) => {
 					firstName,
 					lastName,
 					phone,
-					password,
+					password: hash(password),
 				};
 
 				data.create('users', phone, userObject, (createError) => {
@@ -106,7 +106,7 @@ handler._users.put = (requestProperties, callback) => {
 
 		          	if (firstName) user.firstName = firstName;
 		          	if (lastName) user.lastName = lastName;
-		          	if (password) user.password = password; 
+		          	if (password) user.password = has(password); 
 
 		          	data.update('users', phone, user, (updateError) => {
 		            	if (!updateError) {
