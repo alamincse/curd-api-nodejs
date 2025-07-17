@@ -1,6 +1,6 @@
 const handler = {};
 
-handler.sampleHandler = (requestProperties, callback) => {
+handler.homeHandler = (requestProperties, callback) => {
 	console.log(requestProperties);
 
 	callback(200, {
