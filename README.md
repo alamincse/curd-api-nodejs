@@ -5,7 +5,9 @@
 - **Middleware**
 - **File-based data storage**
 - **User CRUD**
-- **User token create, update(Token time extend) and delete**
+
+## Server Run
+- **node app** or **nodemon app (`npm install -g nodemon`)**
 
 ## Technology Used:
 - **Node JS**
